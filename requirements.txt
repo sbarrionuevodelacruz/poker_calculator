@@ -1,0 +1,4 @@
+# No se requieren dependencias externas
+# La aplicación usa solo librerías estándar de Python:
+# - tkinter (interfaz gráfica)
+# - random, collections, typing (estándar)

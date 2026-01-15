@@ -1,0 +1,35 @@
+{
+  "AA": { "early": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "middle": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "KK": { "early": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "middle": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "QQ": { "early": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "middle": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "JJ": { "early": {"2-3":"raise","4-6":"raise","7-10":"call"}, "middle": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "TT": { "early": {"2-3":"call","4-6":"call","7-10":"fold"}, "middle": {"2-3":"raise","4-6":"call","7-10":"call"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "99": { "early": {"2-3":"call","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"call","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "88": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "77": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "66": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"fold"} },
+  "55": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"fold"} },
+  "44": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"call","4-6":"call","7-10":"fold"} },
+  "33": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"call","4-6":"fold","7-10":"fold"} },
+  "22": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"call","4-6":"fold","7-10":"fold"} },
+
+  "AKs": { "early": {"2-3":"raise","4-6":"raise","7-10":"call"}, "middle": {"2-3":"raise","4-6":"raise","7-10":"raise"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "AQs": { "early": {"2-3":"raise","4-6":"call","7-10":"fold"}, "middle": {"2-3":"raise","4-6":"raise","7-10":"call"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "AJs": { "early": {"2-3":"call","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"raise","4-6":"call","7-10":"fold"}, "late": {"2-3":"raise","4-6":"raise","7-10":"call"} },
+  "ATs": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "A9s": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+
+  "KQs": { "early": {"2-3":"call","4-6":"call","7-10":"fold"}, "middle": {"2-3":"raise","4-6":"call","7-10":"call"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "KJs": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "QJs": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "JTs": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "T9s": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "98s": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "87s": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "76s": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+
+  "AKo": { "early": {"2-3":"raise","4-6":"raise","7-10":"call"}, "middle": {"2-3":"raise","4-6":"raise","7-10":"call"}, "late": {"2-3":"raise","4-6":"raise","7-10":"raise"} },
+  "AQo": { "early": {"2-3":"call","4-6":"call","7-10":"fold"}, "middle": {"2-3":"raise","4-6":"call","7-10":"fold"}, "late": {"2-3":"raise","4-6":"raise","7-10":"call"} },
+  "AJo": { "early": {"2-3":"fold","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"fold","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} },
+  "KQo": { "early": {"2-3":"call","4-6":"fold","7-10":"fold"}, "middle": {"2-3":"call","4-6":"call","7-10":"fold"}, "late": {"2-3":"raise","4-6":"call","7-10":"call"} }
+}
