@@ -1133,11 +1133,12 @@ class PokerApp:
                 
                 # Botones de acción
                 actions = [
-                    ('raise', '↑', '#10b981'),
-                    ('call', '=', '#f59e0b'),
-                    ('fold', '✗', '#ef4444'),
-                    ('3bet', '3', '#8b5cf6'),
-                    ('all-in', 'A', '#dc2626')
+                    ('raise', '↑', '#10b981'),      # Verde: Raise/Open Raise
+                    ('call', '=', '#f59e0b'),        # Naranja: Call/Igualar
+                    ('fold', '✗', '#ef4444'),        # Rojo: Fold/Retirarse
+                    ('3bet', '3', '#3b82f6'),        # Azul: 3Bet/Re-subir
+                    ('4bet', '4', '#8b5cf6'),        # Púrpura: 4Bet/Re-re-subir
+                    ('all-in', 'A', '#dc2626')       # Rojo oscuro: All-in
                 ]
                 
                 # Determinar qué botón está activo
@@ -1499,9 +1500,9 @@ class PokerApp:
         self.table_canvas.create_text(active_bg_x + 5, control_y, text=active_text, 
                                       fill="#34d399", font=("Arial", 11, "bold"), anchor=tk.NW)
         
-        # Información sobre controles
+        # Información sobre controles - más completa
         info_bg_x = 340
-        info_text = "Clic izq en jugador = Dealer | Clic der = Acción (↑/=/✗)"
+        info_text = "Clic izq en jugador = Dealer (D) | Botones: ↑ Raise | = Call | ✗ Fold | 3 3Bet | 4 4Bet | A All-in"
         self.table_canvas.create_text(info_bg_x, control_y, text=info_text, 
                                       fill="#cccccc", font=("Arial", 8), anchor=tk.NW)
         
@@ -1524,14 +1525,21 @@ class PokerApp:
         clear_btn.pack()
         self.clear_btn_window_id = self.table_canvas.create_window(20, button_y, window=clear_frame, anchor=tk.NW)
         
-        # Instrucciones con fondo
+        # Instrucciones con fondo - más completa
         inst_y = height - 25
         self.table_canvas.create_rectangle(
-            10, inst_y - 20, width - 10, height - 5,
+            10, inst_y - 35, width - 10, height - 5,
             fill="#1a1a1a", outline="#444444", width=1
         )
+        
+        # Línea 1: Controles básicos
+        self.table_canvas.create_text(15, inst_y - 15, 
+                                      text="📌 CONTROLES: Clic izq en jugador = Dealer (D naranja) | Clic en cartas = Seleccionar/Eliminar",
+                                      fill="#cccccc", font=("Arial", 9), anchor=tk.SW)
+        
+        # Línea 2: Botones de acción
         self.table_canvas.create_text(15, inst_y, 
-                                      text="Clic izq en jugador = Dealer | Clic der = Acción (↑ Raise / = Call / ✗ Fold) | Clic en cartas = Seleccionar",
+                                      text="🎯 ACCIONES: ↑ Raise (Verde) | = Call (Naranja) | ✗ Fold (Rojo) | 3 3Bet (Azul) | 4 4Bet (Púrpura) | A All-in (Rojo oscuro)",
                                       fill="#cccccc", font=("Arial", 9), anchor=tk.SW)
     
     def handle_reveal_button(self):
@@ -2008,12 +2016,14 @@ class PokerApp:
                 break  # No considerar acciones después de ti
             
             action = self.player_actions.get(player_id, None)
-            if action == 'raise' or action == '3bet' or action == 'all-in':
+            if action == 'raise' or action == '3bet' or action == '4bet' or action == 'all-in':
                 has_raise = True
                 num_raises += 1
-                # 3bet y all-in cuentan como raises adicionales
+                # 3bet, 4bet y all-in cuentan como raises adicionales
                 if action == '3bet':
                     num_raises += 1  # 3bet es un raise adicional
+                elif action == '4bet':
+                    num_raises += 2  # 4bet cuenta como múltiples raises (ya hubo raise + 3bet)
                 elif action == 'all-in':
                     num_raises += 2  # All-in cuenta como múltiples raises
             elif action == 'call':
