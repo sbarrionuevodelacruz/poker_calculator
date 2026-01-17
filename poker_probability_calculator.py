@@ -299,49 +299,67 @@ class PreflopStrategy:
     """Maneja la estrategia preflop y recomendaciones de apuestas"""
     
     def __init__(self):
-        print("Cargando tabla de preflop...")
-        self.preflop_table = self._load_preflop_table()
+        print("Cargando tablas de preflop...")
+        self.preflop_table = None  # Tabla principal (strategy3)
+        self.preflop_table2 = None  # Tabla secundaria (strategy2)
+        self.preflop_table1 = None  # Tabla terciaria (strategy1/antiguo)
+        self._load_all_preflop_tables()
     
-    def _load_preflop_table(self):
-        """Carga la tabla de preflop desde archivo o usa una por defecto"""
-        # Intentar cargar primero el nuevo formato, luego el antiguo
-        table_file2 = "D:\\preflop_strategy2.json.txt"
-        table_file = "D:\\preflop_strategy.json.txt"
+    def _load_all_preflop_tables(self):
+        """Carga todos los archivos de preflop en orden de prioridad"""
+        # Obtener el directorio del script actual
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        table_file3 = os.path.join(script_dir, "preflop_strategy3.json.txt")
+        table_file2 = os.path.join(script_dir, "preflop_strategy2.json.txt")
+        table_file = os.path.join(script_dir, "preflop_strategy.json.txt")
         
-        # Intentar cargar el nuevo formato (preflop_strategy2.json.txt)
+        # Cargar el archivo principal (preflop_strategy3.json.txt) - MTT
+        if os.path.exists(table_file3):
+            try:
+                print(f"Cargando tabla de preflop MTT desde archivo: {table_file3}")
+                with open(table_file3, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if 'metadata' in data or 'open_raise' in data:
+                        print("Formato MTT detectado - usando estrategia de torneos")
+                        self.preflop_table = data
+            except Exception as e:
+                print(f"Error al cargar la tabla de preflop MTT: {table_file3} - {e}")
+        
+        # Cargar el segundo archivo (preflop_strategy2.json.txt) - Microlímites
         if os.path.exists(table_file2):
             try:
-                print(f"Cargando tabla de preflop desde archivo: {table_file2}")
+                print(f"Cargando tabla de preflop secundaria desde archivo: {table_file2}")
                 with open(table_file2, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    # Verificar si es el formato nuevo
                     if 'metadata' in data or 'open_raise' in data:
-                        print("Formato nuevo detectado - usando estrategia completa")
-                        return data
+                        print("Tabla secundaria (microlímites) cargada")
+                        self.preflop_table2 = data
             except Exception as e:
-                print(f"Error al cargar la tabla de preflop: {table_file2} - {e}")
-                pass
+                print(f"Error al cargar la tabla secundaria: {table_file2} - {e}")
         
-        # Intentar cargar el formato antiguo
+        # Cargar el formato antiguo
         if os.path.exists(table_file):
             try:
-                print(f"Cargando tabla de preflop desde archivo: {table_file}")
+                print(f"Cargando tabla de preflop terciaria desde archivo: {table_file}")
                 with open(table_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    # Verificar si es el formato nuevo o antiguo
-                    if 'metadata' in data or 'open_raise' in data:
-                        print("Formato nuevo detectado - usando estrategia completa")
-                        return data
-                    else:
-                        print("Formato antiguo detectado - usando conversión")
-                        return data
+                    print("Tabla terciaria cargada")
+                    self.preflop_table1 = data
             except Exception as e:
-                print(f"Error al cargar la tabla de preflop: {table_file} - {e}")
-                pass
+                print(f"Error al cargar la tabla terciaria: {table_file} - {e}")
         
-        # Tabla por defecto (estrategia básica conservadora)
-        print("Cargando tabla de preflop por defecto...")
-        return self._get_default_preflop_table()
+        # Si no se cargó ninguna tabla, usar la por defecto
+        if not self.preflop_table and not self.preflop_table2 and not self.preflop_table1:
+            print("Cargando tabla de preflop por defecto...")
+            self.preflop_table = self._get_default_preflop_table()
+        elif not self.preflop_table:
+            # Si no hay tabla principal, usar la primera disponible como principal
+            if self.preflop_table2:
+                self.preflop_table = self.preflop_table2
+                self.preflop_table2 = None
+            elif self.preflop_table1:
+                self.preflop_table = self.preflop_table1
+                self.preflop_table1 = None
     
     def _get_default_preflop_table(self):
         """Tabla preflop por defecto - estrategia básica"""
@@ -519,10 +537,11 @@ class PreflopStrategy:
                 return 'EP'  # Early Position (UTG, UTG+1, etc.)
     
     def get_recommendation(self, card1: str, card2: str, position: str, num_players: int, 
-                          has_raise: bool = False, num_raises: int = 0) -> str:
+                          has_raise: bool = False, num_raises: int = 0, stack_size: int = 50) -> str:
         """
         Obtiene la recomendación de apuesta para una mano preflop
         Usa el nuevo formato JSON con todas las situaciones específicas
+        stack_size: Tamaño de stack en BB (por defecto 50, usar 6-10 para push-fold)
         """
         if len(card1) < 2 or len(card2) < 2:
             return 'fold'
@@ -531,16 +550,26 @@ class PreflopStrategy:
         hand = self.normalize_hand(card1, card2)
         
         # Verificar si estamos usando el formato nuevo o antiguo
-        is_new_format = 'open_raise' in self.preflop_table or 'metadata' in self.preflop_table
+        # Usar la tabla principal para determinar el formato, pero las búsquedas buscarán en todas
+        is_new_format = False
+        if self.preflop_table:
+            is_new_format = 'open_raise' in self.preflop_table or 'metadata' in self.preflop_table
+        elif self.preflop_table2:
+            is_new_format = 'open_raise' in self.preflop_table2 or 'metadata' in self.preflop_table2
+        elif self.preflop_table1:
+            is_new_format = 'open_raise' in self.preflop_table1 or 'metadata' in self.preflop_table1
         
         if is_new_format:
-            return self._get_recommendation_new_format(hand, position, num_players, has_raise, num_raises)
+            return self._get_recommendation_new_format(hand, position, num_players, has_raise, num_raises, stack_size)
         else:
             return self._get_recommendation_old_format(hand, position, num_players, has_raise, num_raises)
     
     def _get_recommendation_new_format(self, hand: str, position: str, num_players: int,
-                                      has_raise: bool, num_raises: int) -> str:
+                                      has_raise: bool, num_raises: int, stack_size: int = 50) -> str:
         """Obtiene recomendación usando el nuevo formato JSON con situaciones específicas"""
+        
+        # Verificar si es formato MTT (strategy3) que tiene stack_size
+        is_mtt_format = 'stack_size' in self.preflop_table or 'push_fold_6_10_bb' in str(self.preflop_table.get('open_raise', {}))
         
         # Determinar qué situación usar según el contexto
         # Si hay raises previos, usar tablas de 3Bet/4Bet
@@ -551,33 +580,77 @@ class PreflopStrategy:
             return self._get_action_from_4bet_situation(hand, position)
         elif has_raise or num_raises >= 1:
             # Situación: vs 3Bet (alguien hizo raise/3Bet)
-            return self._get_action_from_3bet_situation(hand, position)
+            return self._get_action_from_3bet_situation(hand, position, stack_size)
         else:
             # Situación: Open Raise (nadie ha subido)
-            return self._get_action_from_open_raise(hand, position)
+            return self._get_action_from_open_raise(hand, position, stack_size)
     
-    def _get_action_from_open_raise(self, hand: str, position: str) -> str:
-        """Obtiene acción desde tablas de Open Raise"""
-        if 'open_raise' not in self.preflop_table:
-            return 'fold'
+    def _get_action_from_open_raise(self, hand: str, position: str, stack_size: int = 50) -> str:
+        """Obtiene acción desde tablas de Open Raise, buscando en los tres archivos en orden"""
+        # Intentar buscar en cada tabla en orden de prioridad
+        for table in [self.preflop_table, self.preflop_table2, self.preflop_table1]:
+            if not table:
+                continue
+            
+            result = self._search_open_raise_in_table(table, hand, position, stack_size)
+            if result is not None:
+                return result
         
+        # Fallback: si la posición no está en las tablas, manos premium siempre raise
+        if hand in ['AA', 'KK', 'QQ', 'AKs', 'AKo']:
+            return 'raise'
+        
+        return 'fold'
+    
+    def _search_open_raise_in_table(self, table: dict, hand: str, position: str, stack_size: int = 50) -> str:
+        """Busca una recomendación de Open Raise en una tabla específica"""
+        if not table or 'open_raise' not in table:
+            return None
+        
+        # Verificar si es formato MTT (strategy3) con rangos por stack size
+        if '50_bb' in table['open_raise'] or 'push_fold_6_10_bb' in table['open_raise']:
+            # Formato MTT - usar stack_size para determinar qué tabla usar
+            if stack_size >= 6 and stack_size <= 10:
+                # Usar rangos Push-Fold para 6-10 BB
+                if 'push_fold_6_10_bb' in table['open_raise']:
+                    push_fold_data = table['open_raise']['push_fold_6_10_bb']
+                    if position in push_fold_data:
+                        hands_dict = push_fold_data[position]
+                        if 'all_in' in hands_dict and hand in hands_dict['all_in']:
+                            return 'all-in'
+                        elif 'fold' in hands_dict and hand in hands_dict['fold']:
+                            return 'fold'
+                        elif 'call_all_in' in hands_dict and hand in hands_dict['call_all_in']:
+                            return 'call'
+            else:
+                # Usar rangos estándar de 50 BB
+                if '50_bb' in table['open_raise']:
+                    or_data = table['open_raise']['50_bb']
+                    if position in or_data:
+                        hands_dict = or_data[position]
+                        if 'raise' in hands_dict and hand in hands_dict['raise']:
+                            return 'raise'
+                        elif 'fold' in hands_dict and hand in hands_dict['fold']:
+                            return 'fold'
+                        elif 'defend' in hands_dict and hand in hands_dict['defend']:
+                            return 'raise'  # Defender típicamente significa raise/call
+        
+        # Formato antiguo (strategy2) - usar IP/OOP
         # Usar IP (In Position) por defecto, ya que es más común
-        # En el futuro se podría determinar si estamos IP o OOP
-        if 'IP' in self.preflop_table['open_raise']:
-            if 'OR_2.5bb_vs_3B_4x' in self.preflop_table['open_raise']['IP']:
-                or_data = self.preflop_table['open_raise']['IP']['OR_2.5bb_vs_3B_4x']
+        if 'IP' in table['open_raise']:
+            if 'OR_2.5bb_vs_3B_4x' in table['open_raise']['IP']:
+                or_data = table['open_raise']['IP']['OR_2.5bb_vs_3B_4x']
                 if position in or_data:
                     hands_dict = or_data[position]
-                    # Verificar si la mano está en raise o fold
                     if 'raise' in hands_dict and hand in hands_dict['raise']:
                         return 'raise'
                     elif 'fold' in hands_dict and hand in hands_dict['fold']:
                         return 'fold'
         
         # Si no se encuentra, intentar OOP
-        if 'OOP' in self.preflop_table['open_raise']:
-            if 'OR_2.5bb_vs_3B_3x' in self.preflop_table['open_raise']['OOP']:
-                or_data = self.preflop_table['open_raise']['OOP']['OR_2.5bb_vs_3B_3x']
+        if 'OOP' in table['open_raise']:
+            if 'OR_2.5bb_vs_3B_3x' in table['open_raise']['OOP']:
+                or_data = table['open_raise']['OOP']['OR_2.5bb_vs_3B_3x']
                 if position in or_data:
                     hands_dict = or_data[position]
                     if 'raise' in hands_dict and hand in hands_dict['raise']:
@@ -585,22 +658,46 @@ class PreflopStrategy:
                     elif 'fold' in hands_dict and hand in hands_dict['fold']:
                         return 'fold'
         
+        return None
+    
+    def _get_action_from_3bet_situation(self, hand: str, position: str, stack_size: int = 50) -> str:
+        """Obtiene acción desde tablas de 3Bet/Defend vs Open Raise, buscando en los tres archivos en orden"""
+        # Intentar buscar en cada tabla en orden de prioridad
+        for table in [self.preflop_table, self.preflop_table2, self.preflop_table1]:
+            if not table:
+                continue
+            
+            result = self._search_3bet_in_table(table, hand, position)
+            if result is not None:
+                return result
+        
         return 'fold'
     
-    def _get_action_from_3bet_situation(self, hand: str, position: str) -> str:
-        """Obtiene acción desde tablas de 3Bet/Defend vs Open Raise"""
-        if 'vs_open_raise' not in self.preflop_table:
-            return 'fold'
+    def _search_3bet_in_table(self, table: dict, hand: str, position: str) -> str:
+        """Busca una recomendación de 3Bet en una tabla específica"""
+        if not table or 'vs_open_raise' not in table:
+            return None
         
-        # Buscar en 3bet_defend
-        if '3bet_defend' in self.preflop_table['vs_open_raise']:
+        # Verificar si es formato MTT (strategy3)
+        if '3bet_defend_50bb' in table['vs_open_raise']:
+            situation_data = table['vs_open_raise']['3bet_defend_50bb']
+            if position in situation_data:
+                hands_dict = situation_data[position]
+                if '3bet' in hands_dict and hand in hands_dict['3bet']:
+                    return '3bet'
+                elif 'fold' in hands_dict and hand in hands_dict['fold']:
+                    return 'fold'
+                elif 'call' in hands_dict and hand in hands_dict['call']:
+                    return 'call'
+        
+        # Buscar en 3bet_defend (formato strategy2)
+        if '3bet_defend' in table['vs_open_raise']:
             # Usar la situación más común: BT_CO_MP_3x_vs_OR_2.5bb_vs_4B_to_24bb
             situation_key = 'BT_CO_MP_3x_vs_OR_2.5bb_vs_4B_to_24bb'
-            if situation_key in self.preflop_table['vs_open_raise']['3bet_defend']:
-                situation_data = self.preflop_table['vs_open_raise']['3bet_defend'][situation_key]
+            if situation_key in table['vs_open_raise']['3bet_defend']:
+                situation_data = table['vs_open_raise']['3bet_defend'][situation_key]
                 if position in situation_data:
                     hands_dict = situation_data[position]
-                    # Verificar 3bet, fold, o call
                     if '3bet' in hands_dict and hand in hands_dict['3bet']:
                         return '3bet'
                     elif 'fold' in hands_dict and hand in hands_dict['fold']:
@@ -608,19 +705,32 @@ class PreflopStrategy:
                     elif 'call' in hands_dict and hand in hands_dict['call']:
                         return 'call'
         
-        return 'fold'
+        return None
     
     def _get_action_from_4bet_situation(self, hand: str, position: str) -> str:
-        """Obtiene acción desde tablas de 4Bet"""
-        if 'open_raise' not in self.preflop_table:
-            return 'fold'
+        """Obtiene acción desde tablas de 4Bet, buscando en los tres archivos en orden"""
+        # Intentar buscar en cada tabla en orden de prioridad
+        for table in [self.preflop_table, self.preflop_table2, self.preflop_table1]:
+            if not table:
+                continue
+            
+            result = self._search_4bet_in_table(table, hand, position)
+            if result is not None:
+                return result
+        
+        return 'fold'
+    
+    def _search_4bet_in_table(self, table: dict, hand: str, position: str) -> str:
+        """Busca una recomendación de 4Bet en una tabla específica"""
+        if not table or 'open_raise' not in table:
+            return None
         
         # Buscar en 4B_to_24bb o 4B_to_25bb
         for position_type in ['IP', 'OOP']:
-            if position_type in self.preflop_table['open_raise']:
+            if position_type in table['open_raise']:
                 for situation_key in ['4B_to_24bb', '4B_to_25bb']:
-                    if situation_key in self.preflop_table['open_raise'][position_type]:
-                        fourbet_data = self.preflop_table['open_raise'][position_type][situation_key]
+                    if situation_key in table['open_raise'][position_type]:
+                        fourbet_data = table['open_raise'][position_type][situation_key]
                         if position in fourbet_data:
                             hands_dict = fourbet_data[position]
                             # Verificar 4bet o fold
@@ -629,7 +739,7 @@ class PreflopStrategy:
                             elif 'fold' in hands_dict and hand in hands_dict['fold']:
                                 return 'fold'
         
-        return 'fold'
+        return None
     
     def _get_recommendation_old_format(self, hand: str, position: str, num_players: int,
                                        has_raise: bool, num_raises: int) -> str:
@@ -695,6 +805,10 @@ class PreflopStrategy:
     def save_table_to_file(self, filename: str = "preflop_strategy.json"):
         """Guarda la tabla actual en un archivo"""
         try:
+            # Si el filename no es una ruta absoluta, guardar en el directorio del script
+            if not os.path.isabs(filename):
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                filename = os.path.join(script_dir, filename)
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.preflop_table, f, indent=2, ensure_ascii=False)
             return True
@@ -742,6 +856,9 @@ class PokerApp:
         self.dealer_position = 0
         # Tu posición en la mesa (índice del jugador, 0 = tú)
         self.my_position = 0
+        
+        # Tamaño de stack en BB (Big Blinds) - por defecto 50, usar 6-10 para push-fold
+        self.stack_size_bb = 50
         
         # Acciones previas en la ronda (para determinar si hacer raise o 3bet)
         self.previous_actions = {
@@ -1113,6 +1230,40 @@ class PokerApp:
                     anchor=tk.NW, tags=f"player_{i}"
                 )
             
+            # Calcular posiciones de SB y BB relativas al dealer
+            sb_position = (self.dealer_position + 1) % self.num_players
+            bb_position = (self.dealer_position + 2) % self.num_players
+            
+            # Indicador de Small Blind (SB)
+            if i == sb_position:
+                sb_y = y - player_radius - 15
+                # Fondo para SB
+                self.table_canvas.create_rectangle(
+                    x - 20, sb_y - 8,
+                    x + 20, sb_y + 8,
+                    fill="#3b82f6", outline="#60a5fa", width=2,
+                    tags=f"player_{i}_sb"
+                )
+                self.table_canvas.create_text(
+                    x, sb_y, text="SB", fill="#ffffff", 
+                    font=("Arial", 9, "bold"), tags=f"player_{i}_sb"
+                )
+            
+            # Indicador de Big Blind (BB)
+            if i == bb_position:
+                bb_y = y - player_radius - 15
+                # Fondo para BB
+                self.table_canvas.create_rectangle(
+                    x - 20, bb_y - 8,
+                    x + 20, bb_y + 8,
+                    fill="#ef4444", outline="#f87171", width=2,
+                    tags=f"player_{i}_bb"
+                )
+                self.table_canvas.create_text(
+                    x, bb_y, text="BB", fill="#ffffff", 
+                    font=("Arial", 9, "bold"), tags=f"player_{i}_bb"
+                )
+            
             # Texto del jugador
             player_text = "TÚ" if i == 0 else f"J{i}"
             if is_folded:
@@ -1380,7 +1531,8 @@ class PokerApp:
         )
         recommendation = self.preflop_strategy.get_recommendation(
             self.my_cards[0], self.my_cards[1], position, self.num_players,
-            self.previous_actions['has_raise'], self.previous_actions['num_raises']
+            self.previous_actions['has_raise'], self.previous_actions['num_raises'],
+            self.stack_size_bb
         )
         
         # Colores según acción
@@ -1500,8 +1652,43 @@ class PokerApp:
         self.table_canvas.create_text(active_bg_x + 5, control_y, text=active_text, 
                                       fill="#34d399", font=("Arial", 11, "bold"), anchor=tk.NW)
         
+        # Stack Size (BB) - Etiqueta
+        stack_label_x = 340
+        self.table_canvas.create_text(stack_label_x, control_y, text="Stack (BB):", 
+                                      fill="#93c5fd", font=("Arial", 11, "bold"), anchor=tk.NW)
+        
+        # Crear combobox para BB
+        if hasattr(self, 'stack_bb_var'):
+            self.stack_bb_var.set(str(self.stack_size_bb))
+        else:
+            self.stack_bb_var = tk.StringVar(value=str(self.stack_size_bb))
+        
+        # Eliminar widget anterior si existe
+        if hasattr(self, 'stack_bb_combobox_window_id'):
+            try:
+                self.table_canvas.delete(self.stack_bb_combobox_window_id)
+            except:
+                pass
+        
+        # Crear frame para el combobox de BB
+        stack_combobox_frame = ttk.Frame(self.table_canvas)
+        self.stack_bb_combobox = ttk.Combobox(stack_combobox_frame, 
+                                             textvariable=self.stack_bb_var,
+                                             values=[str(i) for i in [6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100]],
+                                             width=6,
+                                             state="readonly",
+                                             font=("Arial", 10))
+        self.stack_bb_combobox.pack()
+        
+        # Configurar callback cuando cambie el valor
+        self.stack_bb_combobox.bind("<<ComboboxSelected>>", lambda e: self.update_stack_size())
+        
+        # Posicionar combobox después del texto "Stack (BB):"
+        stack_combobox_x = 440
+        self.stack_bb_combobox_window_id = self.table_canvas.create_window(stack_combobox_x, control_y - 2, window=stack_combobox_frame, anchor=tk.NW)
+        
         # Información sobre controles - más completa
-        info_bg_x = 340
+        info_bg_x = 530
         info_text = "Clic izq en jugador = Dealer (D) | Botones: ↑ Raise | = Call | ✗ Fold | 3 3Bet | 4 4Bet | A All-in"
         self.table_canvas.create_text(info_bg_x, control_y, text=info_text, 
                                       fill="#cccccc", font=("Arial", 8), anchor=tk.NW)
@@ -2092,6 +2279,19 @@ class PokerApp:
             if hasattr(self, 'dealer_var'):
                 self.dealer_var.set("0")
             self.draw_table()
+    
+    def update_stack_size(self, event=None):
+        """Actualiza el tamaño de stack en BB desde el combobox"""
+        try:
+            self.stack_size_bb = int(self.stack_bb_var.get())
+            # Actualizar recomendación preflop si hay cartas
+            if len(self.my_cards) == 2:
+                self.update_previous_actions_from_players()
+                self.draw_table()
+        except (ValueError, AttributeError, tk.TclError):
+            self.stack_size_bb = 50
+            if hasattr(self, 'stack_bb_var'):
+                self.stack_bb_var.set("50")
     
     def update_my_position(self, event=None):
         """Actualiza la posición del jugador en la mesa"""

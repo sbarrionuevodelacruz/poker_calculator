@@ -205,18 +205,96 @@ La aplicación detecta automáticamente en qué situación estás y te da la rec
 
 ---
 
-### 🔍 Cómo Leer las Tablas del JSON
+### 🔍 Explicación Detallada de las Tablas del JSON (preflop_strategy2.json.txt)
 
-El archivo `preflop_strategy2.json.txt` contiene todas las tablas organizadas así:
+El archivo `preflop_strategy2.json.txt` contiene tablas de estrategia preflop organizadas por situaciones específicas. Aquí te explicamos cada caso:
 
-- **open_raise**: Situaciones donde abres con raise
-  - **OOP**: Out of Position (fuera de posición)
-  - **IP**: In Position (en posición)
-- **vs_open_raise**: Situaciones donde alguien ya hizo raise
-  - **3bet_defend**: Cuándo hacer 3Bet o defender
-  - **bb_vs_IP_OR**: Defender desde Big Blind
+#### 1. **open_raise** - Abrir con Raise
 
-Cada situación tiene listas de manos para cada posición (EP, MP, CO, BTN, SB) indicando qué acción tomar.
+Situaciones donde eres el primero en subir (nadie ha hecho raise antes).
+
+**Estructura:**
+- **OOP (Out of Position)**: Estás fuera de posición (actúas antes que tu oponente)
+  - `OR_2.5bb_vs_3B_3x`: Abres con raise de 2.5 veces la ciega grande (2.5bb). Si alguien hace 3Bet después, normalmente lo hará 3 veces tu raise.
+  - `4B_to_24bb`: Si alguien re-subió tu 3Bet (hizo 4Bet), esta tabla indica si debes defender haciendo 4Bet hasta 24bb o retirarte.
+
+- **IP (In Position)**: Estás en posición (actúas después que tu oponente)
+  - `OR_2.5bb_vs_3B_4x`: Abres con raise de 2.5bb. Si alguien hace 3Bet después, normalmente lo hará 4 veces tu raise.
+  - `4B_to_25bb`: Si alguien re-subió tu 3Bet, esta tabla indica si debes defender haciendo 4Bet hasta 25bb o retirarte.
+
+**Ejemplo de uso:**
+- Tienes **AA** en **BTN** (IP), nadie ha subido → Consulta `open_raise → IP → OR_2.5bb_vs_3B_4x → BTN` → Verifica si AA está en la lista "raise" → **Resultado: Raise**
+
+---
+
+#### 2. **vs_open_raise** - Responder a un Open Raise
+
+Situaciones donde alguien ya hizo un Open Raise antes que tú.
+
+##### A. **3bet_defend** - Hacer 3Bet o Defender
+
+`BT_CO_MP_3x_vs_OR_2.5bb_vs_4B_to_24bb`: 
+- **Significado**: Cuando alguien hace Open Raise desde BTN, CO o MP de 2.5bb, y esa persona hace 3Bet (3 veces el raise, es decir, 7.5bb total). Si tú respondes con 3Bet y ellos re-suben (4Bet), normalmente lo harán hasta 24bb.
+- **Cuándo usar**: Alguien hizo Open Raise desde BTN, CO o MP, y ahora es tu turno. Tú decides si hacer 3Bet o retirarte.
+- **Acciones**:
+  - **3bet**: Lista de manos con las que debes hacer 3Bet
+  - **fold**: Lista de manos con las que debes retirarte
+  - **call**: Lista de manos con las que debes igualar (puede estar vacía en algunas situaciones)
+
+**Ejemplo de uso:**
+- Alguien hizo Open Raise desde **CO**, tienes **QQ** en **BTN** → Consulta `vs_open_raise → 3bet_defend → BT_CO_MP_3x_vs_OR_2.5bb_vs_4B_to_24bb → BTN` → Verifica si QQ está en "3bet" → **Resultado: 3Bet**
+
+---
+
+##### B. **sb_4x_vs_EP_OR_2.5bb_vs_4B_to_25bb** - Small Blind contra Raise desde Early Position
+
+- **Significado**: Estás en Small Blind (SB). Alguien hizo Open Raise desde Early Position (EP) de 2.5bb. Tú decides si hacer 3Bet (4 veces el raise, es decir, 10bb total) o retirarte. Si haces 3Bet y ellos re-suben (4Bet), normalmente lo harán hasta 25bb.
+- **Cuándo usar**: Alguien hizo Open Raise desde EP, y tú estás en SB.
+- **Acciones**: Similar a 3bet_defend, con listas de manos para 3bet, fold y call según tu posición relativa.
+
+**Ejemplo de uso:**
+- Alguien hizo Open Raise desde **EP**, tienes **AKs** en **SB** → Consulta `vs_open_raise → sb_4x_vs_EP_OR_2.5bb_vs_4B_to_25bb → SB` → Verifica si AKs está en "3bet" → **Resultado: 3Bet**
+
+---
+
+##### C. **bb_vs_IP_OR_2.5bb_3B_4x_vs_4B_to_25bb** - Big Blind contra Raise desde IP con 3Bet
+
+- **Significado**: Estás en Big Blind (BB). Alguien hizo Open Raise desde In Position (IP) de 2.5bb. Luego, otro jugador hizo 3Bet (4 veces el raise, es decir, 10bb total). Ahora es tu turno en BB. Esta tabla indica si debes defender (igualar o hacer 3Bet) o retirarte. Si decides hacer 3Bet y alguien re-sube (4Bet), normalmente lo harán hasta 25bb.
+- **Cuándo usar**: Hubo Open Raise desde IP, luego alguien hizo 3Bet, y tú estás en BB defendiendo tu ciega.
+- **Acciones**:
+  - **defend**: Lista de manos con las que debes defender (igualar o hacer 3Bet)
+  - **fold**: Lista de manos con las que debes retirarte
+
+**Ejemplo de uso:**
+- Hubo Open Raise desde **BTN**, alguien hizo **3Bet** desde **CO**, tienes **KQs** en **BB** → Consulta `vs_open_raise → bb_vs_IP_OR_2.5bb_3B_4x_vs_4B_to_25bb → BB` → Verifica si KQs está en "defend" → **Resultado: Defender**
+
+---
+
+#### 📋 Resumen de las Situaciones del JSON
+
+| Situación | Cuándo Ocurre | Qué Hace la Tabla |
+|-----------|---------------|-------------------|
+| `OR_2.5bb_vs_3B_3x` (OOP) | Abres con raise de 2.5bb (fuera de posición) | Indica si debes hacer Open Raise o fold |
+| `OR_2.5bb_vs_3B_4x` (IP) | Abres con raise de 2.5bb (en posición) | Indica si debes hacer Open Raise o fold |
+| `4B_to_24bb` (OOP) | Alguien hizo 4Bet después de tu 3Bet (OOP) | Indica si debes hacer 4Bet hasta 24bb o fold |
+| `4B_to_25bb` (IP) | Alguien hizo 4Bet después de tu 3Bet (IP) | Indica si debes hacer 4Bet hasta 25bb o fold |
+| `BT_CO_MP_3x_vs_OR_2.5bb_vs_4B_to_24bb` | Alguien hizo Open Raise desde BTN/CO/MP | Indica si debes hacer 3Bet, call o fold |
+| `sb_4x_vs_EP_OR_2.5bb_vs_4B_to_25bb` | Alguien hizo Open Raise desde EP, tú en SB | Indica si debes hacer 3Bet (4x), call o fold |
+| `bb_vs_IP_OR_2.5bb_3B_4x_vs_4B_to_25bb` | Hubo Open Raise desde IP + 3Bet, tú en BB | Indica si debes defender o fold |
+
+---
+
+#### 💡 Notas Importantes
+
+1. **Las tablas están basadas en tamaños de apuesta específicos** (2.5bb, 3x, 4x, 24bb, 25bb). Si el tamaño real de las apuestas es muy diferente, las recomendaciones pueden no ser óptimas.
+
+2. **La posición importa mucho**: Las mismas cartas pueden tener recomendaciones diferentes según tu posición. Por ejemplo, **AJo** puede ser "raise" en BTN pero "fold" en EP.
+
+3. **IP vs OOP**: En posición (IP) puedes jugar más manos agresivamente. Fuera de posición (OOP) necesitas manos más fuertes.
+
+4. **AA siempre debe estar en las listas de raise/3bet/4bet**: Si AA aparece en "fold" en alguna situación, es probablemente un error en las tablas. La aplicación tiene un fallback para prevenir esto.
+
+5. **Las tablas cubren situaciones comunes pero no todas**: Estas tablas están optimizadas para microlímites y situaciones estándar. En torneos o cash games avanzados, pueden necesitarse ajustes.
 
 ## Notas
 
